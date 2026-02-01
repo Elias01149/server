@@ -5,9 +5,9 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const http_1 = __importDefault(require("http"));
 const ws_1 = require("ws");
+const SERVER_PASSWORD = "affe";
 const PORT = Number(process.env.PORT) || 8080;
 async function startServer() {
-    const SERVER_PASSWORD = process.env.SERVER_PASSWORD;
     if (!SERVER_PASSWORD) {
         console.error("SERVER_PASSWORD fehlt!");
         process.exit(1);

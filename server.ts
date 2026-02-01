@@ -1,11 +1,11 @@
 import http from "http";
 import { WebSocketServer, WebSocket } from "ws";
 
+const SERVER_PASSWORD = "affe";
+
 const PORT = Number(process.env.PORT) || 8080;
 
 async function startServer() {
-
-    const SERVER_PASSWORD = process.env.SERVER_PASSWORD;
 
     if (!SERVER_PASSWORD) {
         console.error("SERVER_PASSWORD fehlt!");
