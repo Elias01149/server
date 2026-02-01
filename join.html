@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>Dev Chat</title>
+</head>
+<body style="text-align:center; background-color:Lightgrey">
+
+<h1 style="color:red;">Login</h1>
+<input id="user" placeholder="Username">
+<input id="pass" type="password" placeholder="Server-Passwort">
+<button onclick="login()">Login</button>
+
+<h2 style="color:blue;">Gemeinsamer Code</h2>
+<textarea id="code" rows="10" cols="80" placeholder="Gib deinen Code ein"></textarea>
+
+<h2 style="color:green;">Chat</h2>
+<input type="text" id="msg" placeholder="Nachricht"></input>
+<button onclick="send()">Senden</button>
+
+<pre style="font-size:150%; color:red;" id="chat"></pre>
+
+<script>
+const ws = new WebSocket("wss://localhost:8080");
+
+const chat = document.getElementById("chat");
+const codeArea = document.getElementById("code");
+const user = document.getElementById("user");
+const pass = document.getElementById("pass");
+const msg = document.getElementById("msg");
+
+ws.onmessage = e => {
+  const data = JSON.parse(e.data);
+
+  if (data.type === "chat") {
+    document.getElementById("chat").textContent += data.message + "\n";
+  }
+
+  if (data.type === "system") {
+    document.getElementById("chat").textContent += "[SYSTEM] " + data.message + "\n";
+  }
+
+  if (data.type === "code") {
+    document.getElementById("code").value = data.code;
+  }
+};
+
+function login() {
+  ws.send(JSON.stringify({
+    type: "login",
+    username: document.getElementById("user").value,
+    password: document.getElementById("pass").value
+  }));
+}
+
+function send() {
+  ws.send(JSON.stringify({
+    type: "chat",
+    message: document.getElementById("msg").value
+  }));
+
+  document.getElementById("msg").value = "";
+}
+
+// Live Code Sync
+codeArea.addEventListener("input", () => {
+  ws.send(JSON.stringify({
+    type: "code",
+    code: codeArea.value,
+    language: "js"
+  }));
+});
+</script>
+
+</body>
+</html>
