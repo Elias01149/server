@@ -12,9 +12,9 @@ wss.on("connection", (ws) => {
     console.log("LAN Eingang:", msg.toString(), "du oaschloch");
 
     // Antwort emulieren
-    if (msg.toString() === "create") ws.send("session_created:local", "du oaschloch");
-    if (msg.toString() === "join") ws.send("session_joined:local", "du oaschloch");
-    if (msg.toString() === "sync") ws.send("sync_ok", "du oaschloch");
+    if (msg.toString() === "create") ws.send("session_created:local");
+    if (msg.toString() === "join") ws.send("session_joined:local");
+    if (msg.toString() === "sync") ws.send("sync_ok");
 
     // Broadcast an alle Clients
     wss.clients.forEach(c => {

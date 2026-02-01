@@ -2,9 +2,12 @@
   "compilerOptions": {
     "target": "ES2022",
     "module": "CommonJS",
-    "outDir": "./dist",
     "rootDir": "./",
+    "outDir": "./dist",
+    "esModuleInterop": true,
     "strict": true,
-    "esModuleInterop": true
-  }
+    "skipLibCheck": true,
+    "types": [ "node" ]
+  },
+  "include": [ "server.ts", "lan-server.ts" ]
 }

@@ -64,10 +64,26 @@ async function startServer() {
         ws.on("message", (raw) => {
 
             // ---------- SIZE CHECK ----------
-            if (raw.length > MAX_MESSAGE_SIZE) {
-                ws.close();
-                return;
-            }
+            ws.on("message", (raw) => {
+
+    const buffer = Buffer.isBuffer(raw)
+        ? raw
+        : Buffer.from(raw as any);
+
+    if (buffer.length > MAX_MESSAGE_SIZE) {
+        ws.close();
+        return;
+    }
+
+    let data;
+    try {
+        data = JSON.parse(buffer.toString());
+    } catch {
+        return;
+    }
+
+    // dein restlicher code hier
+});
 
             let data: Message;
 
