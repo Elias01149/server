@@ -1,194 +1,47 @@
-import https from "https";
+import http from "http";
 import { WebSocketServer, WebSocket } from "ws";
-import fs from "fs";
-import readline from "readline";
 
-// ---------- PASSWORT BEIM START ----------
-const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout
-});
-
-function askPassword(): Promise<string> {
-    return new Promise(resolve => {
-        rl.question("Server-Passwort eingeben: ", pw => {
-            resolve(pw.trim());
-        });
-    });
-}
-
-// ---------- MESSAGE TYPES ----------
-const PORT = process.env.PORT || 8080;
-type Message =
-    | { type: "login"; username: string; password: string }
-    | { type: "chat"; message: string }
-    | { type: "code"; code: string; language: string };
-
-type ClientState = {
-    username?: string;
-    authenticated: boolean;
-    lastMessageTime: number;
-};
-
-// ---------- LIMITS ----------
-const MAX_MESSAGE_SIZE = 10_000; // 10 KB
-const MESSAGE_COOLDOWN_MS = 50;  // Anti-Spam
-
-let sharedCode = "";
-let sharedLanguage = "plaintext";
+const PORT = Number(process.env.PORT) || 8080;
 
 async function startServer() {
-    const SERVER_PASSWORD = await askPassword();
+
+    const SERVER_PASSWORD = process.env.SERVER_PASSWORD;
+
+    if (!SERVER_PASSWORD) {
+        console.error("SERVER_PASSWORD fehlt!");
+        process.exit(1);
+    }
+
     console.log("Server startet...\n");
 
-    const httpsServer = https.createServer({
-	key: fs.readFileSync("./cert/key.pem"),
-	cert: fs.readFileSync("./cert/cert.pem")
-    });
+    const server = http.createServer();
 
     const wss = new WebSocketServer({
-        server: httpsServer,
-        maxPayload: MAX_MESSAGE_SIZE
+        server
     });
 
-    const clients = new Map<WebSocket, ClientState>();
-
-    wss.on("connection", (ws) => {
-        clients.set(ws, {
-            authenticated: false,
-            lastMessageTime: 0
-        });
-
+    wss.on("connection", (ws: WebSocket) => {
         console.log("Client connected");
 
         ws.on("message", (raw) => {
+            const buffer = Buffer.isBuffer(raw)
+                ? raw
+                : Buffer.from(raw as any);
 
-            // ---------- SIZE CHECK ----------
-            ws.on("message", (raw) => {
+            const data = buffer.toString();
 
-    const buffer = Buffer.isBuffer(raw)
-        ? raw
-        : Buffer.from(raw as any);
+            console.log("Message:", data);
 
-    if (buffer.length > MAX_MESSAGE_SIZE) {
-        ws.close();
-        return;
-    }
-
-    let data;
-    try {
-        data = JSON.parse(buffer.toString());
-    } catch {
-        return;
-    }
-
-    // dein restlicher code hier
-});
-
-            let data: Message;
-
-            try {
-                data = JSON.parse(raw.toString());
-            } catch {
-                return;
-            }
-
-            const state = clients.get(ws);
-            if (!state) return;
-
-            // ---------- RATE LIMIT ----------
-            const now = Date.now();
-            if (now - state.lastMessageTime < MESSAGE_COOLDOWN_MS) {
-                return;
-            }
-            state.lastMessageTime = now;
-
-            // ---------- LOGIN ----------
-            if (!state.authenticated) {
-                if (data.type !== "login") {
-                    ws.close();
-                    return;
-                }
-
-                if (data.password !== SERVER_PASSWORD) {
-                    ws.send(JSON.stringify({ type: "error", message: "Falsches Passwort" }));
-                    ws.close();
-                    return;
-                }
-
-                state.authenticated = true;
-                state.username = data.username || "Gast";
-
-                console.log(`LOGIN: ${state.username}`);
-
-                ws.send(JSON.stringify({ type: "system", message: `Willkommen ${state.username}` }));
-
-                // aktuellen Code schicken
-                ws.send(JSON.stringify({
-                    type: "code",
-                    code: sharedCode,
-                    language: sharedLanguage
-                }));
-
-                return;
-            }
-
-            // ---------- AUTH CHECK ----------
-            if (!state.authenticated) return;
-
-            // ---------- CODE ----------
-            if (data.type === "code") {
-                if (typeof data.code !== "string") return;
-
-                sharedCode = data.code.slice(0, MAX_MESSAGE_SIZE);
-                sharedLanguage = data.language || sharedLanguage;
-
-                const payload = JSON.stringify({
-                    type: "code",
-                    code: sharedCode,
-                    language: sharedLanguage
-                });
-
-                for (const [client, cstate] of clients.entries()) {
-                    if (cstate.authenticated && client.readyState === 1) {
-                        client.send(payload);
-                    }
-                }
-
-                console.log(`[CODE] Update von ${state.username}`);
-                return;
-            }
-
-            // ---------- CHAT ----------
-            if (data.type === "chat") {
-                if (typeof data.message !== "string") return;
-
-                const message = data.message.slice(0, 500);
-                const fullMessage = `${state.username}: ${message}`;
-
-                console.log(fullMessage);
-
-                const payload = JSON.stringify({
-                    type: "chat",
-                    message: fullMessage
-                });
-
-                for (const [client, cstate] of clients.entries()) {
-                    if (cstate.authenticated && client.readyState === 1) {
-                        client.send(payload);
-                    }
-                }
-            }
+            ws.send("OK");
         });
 
         ws.on("close", () => {
-            console.log(`DISCONNECT: ${clients.get(ws)?.username}`);
-            clients.delete(ws);
+            console.log("Client disconnected");
         });
     });
 
-    httpsServer.listen(PORT, () => { 
-	console.log("Server läuft"); 
+    server.listen(PORT, () => {
+        console.log(`Server läuft auf Port ${PORT}`);
     });
 }
 
